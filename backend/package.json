@@ -1,0 +1,14 @@
+{
+  "name": "arena-torneos-backend",
+  "version": "2.0.0",
+  "private": true,
+  "description": "API local para SQL Server y plataforma de torneos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "setup": "node --env-file-if-exists=.env install-db.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=24" },
+  "dependencies": { "express": "^5.1.0", "mssql": "^12.0.0", "msnodesqlv8": "^5.1.1" }
+}

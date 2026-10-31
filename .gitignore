@@ -1,0 +1,7 @@
+backend/node_modules/
+backend/.env
+front/node_modules/
+front/dist/
+front/.env
+*.log
+*.pid
