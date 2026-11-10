@@ -7,12 +7,18 @@ const {createServer}=require('../server');
 
 // Optativo: crea registros con prefijo único y elimina únicamente sus IDs en finally.
 test('Front/API/SQL Server: flujo completo y reglas de integridad',{skip:process.env.RUN_INTEGRATION!=='1'},async t=>{
- const server=createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const setupCode=randomUUID().replaceAll('-','').slice(0,20);
+ // Las cuentas de esta prueba son temporales y no se guardan en la base.
+ const server=createServer({setupCode,accountStore:{hasAdmin:async()=>false,insert:async()=>{}}});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base=`http://127.0.0.1:${server.address().port}`;
  const tag=`QA_${randomUUID().slice(0,8)}`;
  const equipos=[],jugadores=[],torneos=[],partidas=[];
+ let cookie;
  const call=async(path,method='GET',body,expected=200)=>{
-  const response=await fetch(base+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  const headers={Cookie:cookie};
+  if(body)headers['Content-Type']='application/json';
+  const response=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
   const payload=await response.json();assert.equal(response.status,expected,JSON.stringify(payload));return payload;
  };
  const crearEquipo=async(name,juego)=>{
@@ -23,6 +29,12 @@ test('Front/API/SQL Server: flujo completo y reglas de integridad',{skip:process
   const row=await call('/api/jugadores','POST',body,201);jugadores.push(row.JugadorId);return {id:row.JugadorId,body};
  };
  try {
+  const access=await fetch(base+'/api/acceso/configurar',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({usuario:'qa-admin',clave:randomUUID(),codigo:setupCode}),
+  });
+  assert.equal(access.status,200);
+  cookie=access.headers.get('set-cookie').split(';',1)[0];
   await t.test('servidor entrega el front y bloquea orígenes externos',async()=>{
    const response=await fetch(base);assert.equal(response.status,200);assert.match(await response.text(),/Arena/);
    const blocked=await fetch(base+'/api/equipos',{method:'POST',headers:{Origin:'http://externo.example','Content-Type':'application/json'},body:'{}'});assert.equal(blocked.status,403);

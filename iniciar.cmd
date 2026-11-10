@@ -19,13 +19,15 @@ cd /d "%~dp0front"
 if not exist "node_modules\react\package.json" goto instalar_front
 if not exist "node_modules\vite\package.json" goto instalar_front
 if not exist "node_modules\@vitejs\plugin-react\package.json" goto instalar_front
+if not exist "node_modules\vue\package.json" goto instalar_front
+if not exist "node_modules\@vitejs\plugin-vue\package.json" goto instalar_front
 goto compilar_front
 :instalar_front
 echo Instalando React y Vite...
 call npm ci --no-audit --no-fund
 if errorlevel 1 goto error
 :compilar_front
-echo Compilando el front React con Vite...
+echo Compilando el inicio de sesion, el panel y el portal con Vite...
 call npm run build
 if errorlevel 1 goto error
 cd /d "%~dp0backend"

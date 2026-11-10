@@ -3,10 +3,12 @@ const express = require('express');
 const path = require('node:path');
 const {existsSync} = require('node:fs');
 const {api} = require('./api');
+const {createAuth, destination} = require('./auth');
 const {HttpError, sqlError} = require('./validation');
 
-function createApp() {
+function createApp(authOptions) {
   const app = express();
+  const auth = createAuth(authOptions);
   const front = path.resolve(__dirname, '../front/dist');
   app.disable('x-powered-by');
   app.use((req, res, next) => {
@@ -35,18 +37,39 @@ function createApp() {
   router.use(async (req, res) => {
     const body = req.method === 'GET' ? {} : req.body;
     if (!body || Array.isArray(body) || typeof body !== 'object') throw new HttpError(400, 'El formulario contiene JSON no válido.');
+    if (req.path.startsWith('/acceso/')) {
+      return res.json(await auth.handle(req, res, body));
+    }
+    if (!(req.method === 'GET' && req.path === '/salud')) {
+      const session = auth.session(req);
+      if (!session) throw new HttpError(401, 'Inicia sesión para continuar.');
+      const required = req.path === '/portal' ? 'JUGADOR' : 'ADMIN';
+      if (session.rol !== required) throw new HttpError(403, 'Tu cuenta no tiene acceso a esta sección.');
+    }
     const result = await api(req.method, '/api' + req.path, body);
     res.status(req.method === 'POST' ? 201 : 200).json(result);
   });
   app.use('/api', router);
 
-  app.get('/', (req, res, next) => {
-    if (!existsSync(path.join(front, 'index.html'))) return next(new HttpError(503, 'Falta compilar el front. Ejecuta iniciar.cmd o npm run build en front.'));
-    next();
+  app.get('/', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const session = auth.session(req);
+    res.redirect(session ? destination(session.rol) : '/login.html');
   });
-  app.use(express.static(front, {dotfiles: 'deny', setHeaders(res, filename) {
-    res.setHeader('Cache-Control', filename.endsWith('index.html') ? 'no-cache' : 'public, max-age=3600');
-  }}));
+  app.get(['/login.html', '/index.html', '/portal.html'], (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    const session = auth.session(req);
+    const file = req.path.toLowerCase().replace(/\/$/, '');
+    const allowed = session ? destination(session.rol) : '/login.html';
+    if (file !== allowed) return res.redirect(allowed);
+    const document = path.join(front, allowed.slice(1));
+    if (!existsSync(document)) return next(new HttpError(503, 'Falta compilar el front. Ejecuta iniciar.cmd o npm run build en front.'));
+    res.sendFile(document, {cacheControl: false});
+  });
+  const publicOptions = {dotfiles: 'deny', index: false, redirect: false, maxAge: '1h'};
+  app.use('/assets', express.static(path.join(front, 'assets'), publicOptions));
+  app.use('/torneos', express.static(path.join(front, 'torneos'), publicOptions));
+  app.get('/favicon.svg', (req, res) => res.sendFile(path.join(front, 'favicon.svg')));
   app.use((req, res, next) => next(new HttpError(404, 'Página o ruta no encontrada.')));
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);

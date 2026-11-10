@@ -1,4 +1,4 @@
-# Arena · React + Vite, Node.js + Express y SQL Server
+# Arena · React y Vue, Node.js + Express y SQL Server
 
 Plataforma local para equipos de hasta cinco jugadores, torneos, inscripciones, partidas, estadísticas KDA y resultados de carreras.
 
@@ -6,8 +6,8 @@ Plataforma local para equipos de hasta cinco jugadores, torneos, inscripciones, 
 
 | Capa | Tecnología | Archivos principales |
 | --- | --- | --- |
-| Frontend | React, JavaScript JSX y Vite | `front/src/App.jsx`, `front/src/pages.jsx`, `front/src/components.jsx`, `front/vite.config.js` |
-| Backend | Node.js y Express | `backend/app.js`, `backend/server.js`, `backend/api.js` |
+| Frontend | React para administración, Vue para el portal y Vite para compilar | `front/src/App.jsx`, `front/src/portal/Portal.vue`, `front/vite.config.js` |
+| Backend | Node.js y Express | `backend/app.js`, `backend/server.js`, `backend/api.js`, `backend/portal.js` |
 | Base de datos | SQL Server y T-SQL | `01_crear_base_datos.sql`, `backend/db.js` |
 
 Los formularios son componentes React con estado y eventos. Vite compila la interfaz y Express entrega el resultado y atiende la API. Los datos se guardan en SQL Server; no se utiliza almacenamiento simulado en el navegador.
@@ -15,6 +15,10 @@ Los formularios son componentes React con estado y eventos. Vite compila la inte
 ## Usar en este computador
 
 Abre **iniciar.cmd**, espera que el servidor esté listo y entra a **http://127.0.0.1:3000**. El iniciador instala las dependencias que falten en ambas carpetas, compila el front con Vite e inicia Express. Deja su ventana abierta; Ctrl+C detiene el servidor.
+
+Al entrar se abre el inicio de sesión. Selecciona **Crear cuenta como usuario de la plataforma** para acceder al portal de torneos, equipos y resultados. Para preparar la cuenta administrativa, selecciona **Configurar administrador** y utiliza el código que aparece en la terminal de `iniciar.cmd`. Esta opción solo aparece mientras la cuenta de administrador esté pendiente.
+
+Las cuentas se guardan en SQL Server con su rol y un hash de contraseña. El backend prepara la tabla `dbo.CuentaArena` al arrancar. Cada rol tiene acceso a su vista y a sus rutas de API. Usa **Cerrar sesión** para entrar con otra cuenta.
 
 ## Preparar el computador de un compañero
 
@@ -30,7 +34,7 @@ Cada computador tendrá una base independiente. Copiar los archivos no copia la 
 
 | Archivo | Función |
 | --- | --- |
-| `iniciar.cmd` | Instala dependencias faltantes, compila React con Vite e inicia Express. |
+| `iniciar.cmd` | Instala dependencias faltantes, compila el panel React y el portal Vue con Vite e inicia Express. |
 | `instalar_base.cmd` | Prepara la base en otro computador, sin demostraciones ni borrados. |
 | `01_crear_base_datos.sql` | Diseño completo de SQL Server; necesario para instalar la base. |
 | `GUIA_APLICACION.md` | Manual de uso, instalación, desarrollo y API. |

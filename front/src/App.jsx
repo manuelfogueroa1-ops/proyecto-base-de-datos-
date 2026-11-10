@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArenaContext } from './context.js';
-import { request } from './api.js';
+import { request, signOut } from './api.js';
 import { Dashboard, Equipos, Jugadores, Torneos, Inscripciones, Partidas, Resultados } from './pages.jsx';
 
 const pages = {
@@ -16,6 +16,7 @@ const currentPage = () => Object.hasOwn(pages, location.hash.slice(1)) ? locatio
 export default function App() {
   const [page, setPage] = useState(currentPage), [data, setData] = useState(null), [online, setOnline] = useState(null);
   const [error, setError] = useState(''), [pending, setPending] = useState(false), [toast, setToast] = useState(null);
+  const [signingOut, setSigningOut] = useState(false);
   const toastTimer = useRef(null);
   const notify = useCallback((message, isError = false) => {
     clearTimeout(toastTimer.current); setToast({message, isError});
@@ -39,6 +40,11 @@ export default function App() {
   const [, title, description, Page] = pages[page];
   useEffect(() => {document.title = `${title} · Arena`;}, [title]);
   async function reload() {try {await refresh(); notify('Datos actualizados.');} catch (problem) {notify(problem.message, true);}}
+  async function logout() {
+    setSigningOut(true);
+    try { await signOut(); }
+    catch (problem) { notify(problem.message, true); setSigningOut(false); }
+  }
   return <ArenaContext.Provider value={{data, refresh, mutate, pending, notify}}>
     <aside className="sidebar">
       <a className="brand" href="#resumen"><span className="brand-mark">A<span>↗</span></span><span>arena<span className="brand-sub">TOURNAMENT MANAGER</span></span></a>
@@ -48,7 +54,17 @@ export default function App() {
       <div className="sidebar-bottom"><div className="local-tag"><i /> ENTORNO LOCAL</div><p>Tu competencia.<br />Todos los datos, en un lugar.</p><div className="admin-avatar"><span>AD</span><div>Administrador<small>Gestión de la plataforma</small></div></div></div>
     </aside>
     <div className="shell">
-      <header className="topbar"><div className="breadcrumb">Mi plataforma <span>/</span> <strong>{title}</strong></div><button className="connection" type="button" onClick={reload} title="Actualizar los datos" disabled={pending}><i className={online === null ? '' : online ? 'online' : 'offline'} /><span>{online === null ? 'Conectando…' : online ? 'Base de datos conectada' : 'Sin conexión'}</span><span className="refresh-icon">↻</span></button></header>
+      <header className="topbar">
+        <div className="breadcrumb"><span className="breadcrumb-root">Mi plataforma /</span> <strong>{title}</strong></div>
+        <div className="topbar-actions">
+          <button className="button portal-link" type="button" onClick={logout} disabled={signingOut}>Cerrar sesión</button>
+          <button className="connection" type="button" onClick={reload} title="Actualizar los datos" disabled={pending}>
+            <i className={online === null ? '' : online ? 'online' : 'offline'} />
+            <span className="connection-label">{online === null ? 'Conectando…' : online ? 'Base de datos conectada' : 'Sin conexión'}</span>
+            <span className="refresh-icon" aria-hidden="true">↻</span>
+          </button>
+        </div>
+      </header>
       <main tabIndex="-1">{!data ? error ? <section className="error-page"><p className="eyebrow">CONEXIÓN</p><h1>No pudimos cargar tu plataforma</h1><p>{error}</p><button className="button" onClick={reload}>Volver a intentar</button></section> : <div className="loading">Conectando con tu plataforma…</div> : <>
         <div className="page-heading"><div><div className="eyebrow">CENTRO DE COMPETENCIA</div><h1>{title}</h1><p>{description}</p></div>{page === 'resumen' ? <span className="date">{new Intl.DateTimeFormat('es-CL', {day:'numeric', month:'long', year:'numeric'}).format(new Date())}</span> : <span className="state-pill">Panel de administración</span>}</div>
         <Page key={page} />

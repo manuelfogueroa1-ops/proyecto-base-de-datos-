@@ -1,5 +1,6 @@
 'use strict';
 const db = require('./db');
+const {portal} = require('./portal');
 const {sql} = db;
 const v = require('./validation');
 const int = value => ({type:sql.Int,value});
@@ -32,6 +33,7 @@ async function api(method, path, body) {
     return {ok:true,mensaje:'SQL Server conectado'};
   }
   if (method === 'GET' && path === '/api/estado') return state();
+  if (method === 'GET' && path === '/api/portal') return portal();
   let match;
   if (method === 'POST' && path === '/api/equipos') {
     return idResult(await db.query('INSERT dbo.Equipo(Nombre,VideojuegoId) OUTPUT inserted.EquipoId VALUES(@nombre,@juego)',{
